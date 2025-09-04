@@ -28,7 +28,7 @@ hide_all_elements = """
 [href*="streamlit"] {display: none;}
 [data-testid="stToolbar"] {display: none;}
 [data-testid="stHeader"] {display: none;}
-[data-testid="stSidebar"] {display: none;}
+div[data-testid="stToolbar"] {display: none !important;}
 
 /* إخفاء الشريط الجانبي تماماً */
 section[data-testid="stSidebar"] {
@@ -43,24 +43,22 @@ section[data-testid="stSidebar"] {
     background-repeat: no-repeat;
     background-attachment: fixed;
     min-height: 100vh;
-    padding-top: 20px;
+    padding-top: 80px;
 }
 
 @media only screen and (max-width: 768px) {
     .stApp {
         background-size: cover;
         background-position: center top;
-        padding-top: 10px;
+        padding-top: 60px;
     }
 }
 
-/* تحسين تنسيق النصوص */
 h1 {
     font-size: 26px !important;
     color: #ffffff;
     text-align: center;
-    margin-top: 0px;
-    margin-bottom: 20px;
+    margin-top: -60px;
 }
 h2 {
     font-size: 20px !important;
@@ -144,7 +142,7 @@ def load_data_and_password():
         password_value = ws.cell(1, 5).value
         return df, password_value
     except Exception as e:
-        st.error(f"❌ فشل الاتصل بقاعدة البيانات: {str(e)}")
+        st.error(f"❌ فشل الاتصال بقاعدة البيانات: {str(e)}")
         st.info("تأكد من إعداد متغيرات البيئة GOOGLE_CREDENTIALS و SHEET_ID بشكل صحيح في إعدادات Render، أو في ملف secrets.toml لـ Streamlit.")
         st.stop()
 
@@ -247,18 +245,13 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<div style='background: rgba(31, 31, 31, 0.9); padding: 20px; border-radius: 10px;'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; color: white;'>تسجيل الدخول</h3>", unsafe_allow_html=True)
-        password = st.text_input("الرقم السري", type="password")
-        if st.button("دخول", use_container_width=True):
-            if password == str(PASSWORD):
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("❌ الرقم السري غير صحيح")
-        st.markdown("</div>", unsafe_allow_html=True)
+    password = st.text_input("الرقم السري", type="password")
+    if st.button("دخول"):
+        if password == str(PASSWORD):
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("❌ الرقم السري غير صحيح")
     st.stop()
 
 # بعد التحقق
@@ -316,7 +309,7 @@ elif synonym_results:
         render_card(r, "📌")
 else:
     st.warning("❌ لم يتم العثور على نتائج.. وش رايك تستخدم البحث الذكي 👇")
-    if st.button("🤖 البحث الذكي", use_container_width=True):
+    if st.button("🤖 البحث الذكي"):
         try:
             with st.spinner("جاري البحث الذكي..."):
                 model = load_model()
