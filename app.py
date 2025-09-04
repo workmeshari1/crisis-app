@@ -6,35 +6,29 @@ from sentence_transformers import SentenceTransformer, util
 import torch
 import os
 import json
-import time
 
-# --- إعدادات الأداء وتقليل استخدام الذاكرة ---
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-# --- إخفاء كامل لعناصر Streamlit ---
+# --- إخفاء كامل لعناصر Streamlit وGitHub ---
 st.set_page_config(
-    page_title="⚡ إدارة الكوارث والأزمات",
+    page_title="نظام إدارة الكوارث والأزمات",
     page_icon="⚡",
     layout="centered",
     initial_sidebar_state="collapsed",
     menu_items=None
 )
 
-hide_streamlit_style = """
+# إخفاء جميع العناصر غير المرغوب فيها
+hide_ui_elements = """
 <style>
+/* إخفاء عناصر Streamlit */
 #MainMenu, header, footer {visibility: hidden;}
 .stDeployButton {display: none;}
 [data-testid="stDecoration"] {display: none;}
 [data-testid="baseButton-header"] {display: none;}
-.st-emotion-cache-12fmjuu {display: none;}
-</style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+[data-testid="stToolbar"] {display: none;}
+[href*="github"] {display: none;}
+[href*="streamlit"] {display: none;}
 
-# --- الخلفية مع التنسيقات ---
-page_style = """
-<style>
+/* تنسيقات التطبيق */
 .stApp {
     background-image: url("https://github.com/workmeshari1/disaster-app/blob/6b907779e30e18ec6ebec68b90e2558d91e5339b/assets.png?raw=true");
     background-size: cover;
@@ -67,35 +61,31 @@ h3 {
     font-size: 18px !important;
     color: #ffffff;
 }
+
+/* تحسينات للأداء */
+.stSpinner > div {display: none;}
 </style>
 """
-st.markdown(page_style, unsafe_allow_html=True)
+st.markdown(hide_ui_elements, unsafe_allow_html=True)
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# --- تحميل الموديل مرة واحدة مع تحسين الأداء ---
+# --- تحميل الموديل مرة واحدة ---
 @st.cache_resource(show_spinner=False)
 def load_model():
     try:
-        # استخدام نموذج أخف وأسرع مع الحفاظ على الدقة العربية
         return SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
     except Exception as e:
         st.error(f"خطأ في تحميل النموذج: {str(e)}")
-        try:
-            # بديل عربي خفيف
-            return SentenceTransformer("asafaya/bert-mini-arabic")
-        except:
-            return None
+        return None
 
 # --- قراءة البيانات + كلمة المرور من الشيت ---
 @st.cache_data(ttl=600, show_spinner=False)
 def load_data_and_password():
     try:
-        # 1. أولاً، حاول تحميل الأسرار من متغيرات البيئة (لـ Render)
         creds_json = os.getenv("GOOGLE_CREDENTIALS")
         sheet_id = os.getenv("SHEET_ID")
         
-        # 2. إذا لم يتم العثور عليها، حاول التحميل من أسرار Streamlit
         if not creds_json and hasattr(st, 'secrets') and "GOOGLE_CREDENTIALS" in st.secrets:
             creds_json = json.dumps(dict(st.secrets["GOOGLE_CREDENTIALS"]))
             if "id" in st.secrets["SHEET"]:
@@ -114,11 +104,6 @@ def load_data_and_password():
 
         data = ws.get_all_records()
         df = pd.DataFrame(data)
-        
-        # تقليل حجم البيانات إذا كانت كبيرة
-        if len(df) > 1000:
-            df = df.head(1000)
-            
         password_value = ws.cell(1, 5).value
         return df, password_value
     except Exception as e:
@@ -187,20 +172,11 @@ def process_number_input(q, df, syn_col, action_col):
         else:
             st.warning("❌ لم يتم العثور على تطابق للرقم المدخل.")
             return False
-
     except ValueError:
         return False
 
 # ============== واجهة التطبيق ==============
 def main():
-    # شاشة تحميل أولية
-    if "app_loaded" not in st.session_state:
-        with st.spinner("جاري تحميل النظام، يرجى الانتظار..."):
-            # تحميل الموديل مسبقاً في الخلفية
-            if "model" not in st.session_state:
-                st.session_state.model = load_model()
-            st.session_state.app_loaded = True
-
     st.title("⚡ دائرة إدارة الكوارث والأزمات الصناعية")
 
     # جرب تحميل البيانات
@@ -222,7 +198,6 @@ def main():
     for col in [DESC_COL, ACTION_COL]:
         if col not in df.columns:
             st.error(f"عمود مفقود في Google Sheet: '{col}'.")
-            st.info(f"الأعمدة المتاحة: {list(df.columns)}")
             st.stop()
 
     if SYN_COL not in df.columns:
@@ -300,7 +275,8 @@ def main():
         if st.button("🤖 البحث الذكي"):
             try:
                 with st.spinner("جاري البحث الذكي..."):
-                    if st.session_state.model is None:
+                    model = load_model()
+                    if model is None:
                         st.error("❌ النموذج غير متاح")
                         return
                         
@@ -314,10 +290,9 @@ def main():
                         st.error("❌ فشل في حساب التضمينات")
                         return
                         
-                    query_embedding = st.session_state.model.encode(query, convert_to_tensor=True)
+                    query_embedding = model.encode(query, convert_to_tensor=True)
                     cosine_scores = util.pytorch_cos_sim(query_embedding, embeddings)[0]
                     top_scores, top_indices = torch.topk(cosine_scores, k=min(5, len(df)))
-                    
                     st.subheader("🧐 يمكن قصدك:")
                     found_results = False
                     for score, idx in zip(top_scores, top_indices):
@@ -350,15 +325,14 @@ def main():
         st.info("🔄 تحديث البيانات: كل 10 دقائق")
         if st.button("🔒 تسجيل خروج"):
             st.session_state.authenticated = False
-            st.session_state.app_loaded = False
             st.rerun()
 
-    # Footer
+    # Footer مخصص
     st.markdown("---")
     st.markdown(
         """
         <div style='text-align: center; color: #888; direction: rtl;'>
-        آلية إدارة الكوارث والأزمات الذكية
+        نظام إدارة الكوارث والأزمات الذكية
         </div>
         """,
         unsafe_allow_html=True
