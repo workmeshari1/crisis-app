@@ -28,6 +28,12 @@ hide_all_elements = """
 [href*="streamlit"] {display: none;}
 [data-testid="stToolbar"] {display: none;}
 [data-testid="stHeader"] {display: none;}
+[data-testid="stSidebar"] {display: none;}
+
+/* إخفاء الشريط الجانبي تماماً */
+section[data-testid="stSidebar"] {
+    display: none !important;
+}
 
 /* تنسيقات مخصصة للتطبيق */
 .stApp {
@@ -37,22 +43,24 @@ hide_all_elements = """
     background-repeat: no-repeat;
     background-attachment: fixed;
     min-height: 100vh;
-    padding-top: 80px;
+    padding-top: 20px;
 }
 
 @media only screen and (max-width: 768px) {
     .stApp {
         background-size: cover;
         background-position: center top;
-        padding-top: 60px;
+        padding-top: 10px;
     }
 }
 
+/* تحسين تنسيق النصوص */
 h1 {
     font-size: 26px !important;
     color: #ffffff;
     text-align: center;
-    margin-top: -60px;
+    margin-top: 0px;
+    margin-bottom: 20px;
 }
 h2 {
     font-size: 20px !important;
@@ -61,6 +69,36 @@ h2 {
 h3 {
     font-size: 18px !important;
     color: #ffffff;
+}
+
+/* تنسيقات للأزرار والمربعات النصية */
+.stButton > button {
+    width: 100%;
+    background: linear-gradient(135deg, #ff6600 0%, #e55a00 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-weight: bold !important;
+}
+
+.stTextInput > div > div > input {
+    border-radius: 8px !important;
+    padding: 12px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* تخصيص مربعات النتائج */
+div[data-testid="stVerticalBlock"] > div {
+    background: rgba(31, 31, 31, 0.9) !important;
+    border-radius: 10px !important;
+    padding: 15px !important;
+    margin-bottom: 15px !important;
+}
+
+/* إخفاء أي روابط أو عناصر إضافية */
+a {
+    display: none !important;
 }
 </style>
 """
@@ -106,7 +144,7 @@ def load_data_and_password():
         password_value = ws.cell(1, 5).value
         return df, password_value
     except Exception as e:
-        st.error(f"❌ فشل الاتصال بقاعدة البيانات: {str(e)}")
+        st.error(f"❌ فشل الاتصل بقاعدة البيانات: {str(e)}")
         st.info("تأكد من إعداد متغيرات البيئة GOOGLE_CREDENTIALS و SHEET_ID بشكل صحيح في إعدادات Render، أو في ملف secrets.toml لـ Streamlit.")
         st.stop()
 
@@ -176,7 +214,7 @@ def process_number_input(q, df, syn_col, action_col):
         return False
 
 # ============== واجهة ==============
-st.title("⚡ دائرة إدارة الكوارث والأزمات الصناعية")
+st.markdown("<h1 style='text-align: center;'>⚡ دائرة إدارة الكوارث والأزمات الصناعية</h1>", unsafe_allow_html=True)
 
 # جرب تحميل البيانات
 try:
@@ -209,13 +247,18 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    password = st.text_input("الرقم السري", type="password")
-    if st.button("دخول"):
-        if password == str(PASSWORD):
-            st.session_state.authenticated = True
-            st.rerun()
-        else:
-            st.error("❌ الرقم السري غير صحيح")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<div style='background: rgba(31, 31, 31, 0.9); padding: 20px; border-radius: 10px;'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: white;'>تسجيل الدخول</h3>", unsafe_allow_html=True)
+        password = st.text_input("الرقم السري", type="password")
+        if st.button("دخول", use_container_width=True):
+            if password == str(PASSWORD):
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("❌ الرقم السري غير صحيح")
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # بعد التحقق
@@ -255,7 +298,7 @@ def render_card(r, icon="🔶"):
             <div style="font-size:22px;margin-bottom:6px;">{icon} </div>
             <b>الوصف:</b> {r[DESC_COL]}<br>
             <b>الإجراء:</b>
-            <span style='background:#ff6600;color:#0a1e3f;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
+            <span style='background:#ff6600;color:#fff;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
                 {r[ACTION_COL]}
             </span>
         </div>
@@ -264,16 +307,16 @@ def render_card(r, icon="🔶"):
     )
 
 if literal_results:
-    st.subheader("🔍 النتائج المطابقة:")
+    st.markdown("<h3 style='text-align: right;'>🔍 النتائج المطابقة:</h3>", unsafe_allow_html=True)
     for r in literal_results[:5]:
         render_card(r, "🔍")
 elif synonym_results:
-    st.subheader("📌 يمكن قصدك:")
+    st.markdown("<h3 style='text-align: right;'>📌 يمكن قصدك:</h3>", unsafe_allow_html=True)
     for r in synonym_results[:3]:
         render_card(r, "📌")
 else:
     st.warning("❌ لم يتم العثور على نتائج.. وش رايك تستخدم البحث الذكي 👇")
-    if st.button("🤖 البحث الذكي"):
+    if st.button("🤖 البحث الذكي", use_container_width=True):
         try:
             with st.spinner("جاري البحث الذكي..."):
                 model = load_model()
@@ -285,7 +328,7 @@ else:
                 query_embedding = model.encode(query, convert_to_tensor=True)
                 cosine_scores = util.pytorch_cos_sim(query_embedding, embeddings)[0]
                 top_scores, top_indices = torch.topk(cosine_scores, k=min(5, len(df)))
-                st.subheader("🧐 يمكن قصدك:")
+                st.markdown("<h3 style='text-align: right;'>🧐 يمكن قصدك:</h3>", unsafe_allow_html=True)
                 found_results = False
                 for score, idx in zip(top_scores, top_indices):
                     if float(score) > 0.3:
@@ -297,7 +340,7 @@ else:
                                 <div style="font-size:22px;margin-bottom:6px;">🤖 </div>
                                 <b>الوصف:</b> {r[DESC_COL]}<br>
                                 <b>الإجراء:</b>
-                                <span style='background:#ff6600;color:#0a1e3f;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
+                                <span style='background:#ff6600;color:#fff;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
                                     {r[ACTION_COL]}
                                 </span><br>
                                 <span style='font-size:14px;color:orange;'>درجة التشابه: {float(score):.2f}</span>
@@ -310,22 +353,18 @@ else:
         except Exception as e:
             st.error(f"❌ خطأ في البحث الذكي: {str(e)}")
 
-# شريط جانبي
-with st.sidebar:
-    st.markdown("### معلومات النظام")
-    st.info(f"📊 عدد الحالات المسجلة: {len(df)}")
-    st.info("🔄 تحديث البيانات: كل 10 دقائق")
-    if st.button("🔒 تسجيل خروج"):
-        st.session_state.authenticated = False
-        st.rerun()
-
 # Footer
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: #888; direction: rtl;'>
-    آلية إدارة الكوارث والأزمات الذكية
+    <div style='text-align: center; color: #888; direction: rtl; font-size: 14px;'>
+    آلية إدارة الكوارث والأزمات الذكية | الإصدار 2.0
     </div>
     """,
     unsafe_allow_html=True
 )
+
+# زر تسجيل الخروج في الأسفل
+if st.button("🔒 تسجيل خروج", use_container_width=True):
+    st.session_state.authenticated = False
+    st.rerun()
