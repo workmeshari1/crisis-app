@@ -16,7 +16,7 @@ st.set_page_config(
     menu_items=None  # هذا يخفي القائمة كلياً
 )
 
-# CSS مخصص لإخفاء كل العناصر غير المرغوب فيها بما فيها Fullscreen
+# CSS مخصص لإخفاء كل العناصر غير المرغوب فيها
 hide_all_elements = """
 <style>
 /* إخفاء كل عناصر Streamlit والروابط الخارجية */
@@ -138,6 +138,12 @@ div[role="tooltip"] {
 /* إخفاء أي أزرار تحكم أخرى */
 button[title="View fullscreen"] {
     display: none !important;
+}
+
+/* تحسين المظهر العام */
+.stMarkdown {
+    text-align: right !important;
+    direction: rtl !important;
 }
 </style>
 """
