@@ -7,6 +7,26 @@ import torch
 import os
 import json
 
+# --- كود debugging للتحقق من أن التطبيق يعمل ---
+st.set_page_config(
+    page_title="⚡ إدارة الكوارث والأزمات",
+    page_icon="⚡",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
+# رسالة تأكيد أن التطبيق يعمل
+st.success("✅ التطبيق يعمل! جاري التحميل...")
+
+# تحقق بسيط من المكتبات
+try:
+    st.write("🔍 جاري التحقق من المكتبات...")
+    st.write(f"pandas version: {pd.__version__}")
+    st.write(f"gspread version: {gspread.__version__}")
+except Exception as e:
+    st.error(f"❌ خطأ في المكتبات: {e}")
+
+# استمر بالكود الأصلي هنا...
 # ========== إعداد الصفحة ==========
 st.set_page_config(
     page_title="⚡ إدارة الكوارث والأزمات",
@@ -283,3 +303,4 @@ else:
 if st.button("🔒 تسجيل خروج", use_container_width=True):
     st.session_state.authenticated = False
     st.rerun()
+
