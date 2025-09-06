@@ -16,7 +16,7 @@ st.set_page_config(
     menu_items=None  # هذا يخفي القائمة كلياً
 )
 
-# CSS مخصص لإخفاء كل العناصر غير المرغوب فيها
+# CSS مخصص لإخفاء كل العناصر غير المرغوب فيها بما فيها Fullscreen
 hide_all_elements = """
 <style>
 /* إخفاء كل عناصر Streamlit والروابط الخارجية */
@@ -30,9 +30,35 @@ hide_all_elements = """
 [data-testid="stHeader"] {display: none;}
 div[data-testid="stToolbar"] {display: none !important;}
 
+/* إخفاء زر Fullscreen بشكل كامل */
+div[data-testid="stFullscreenButton"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    width: 0 !important;
+}
+
 /* إخفاء الشريط الجانبي تماماً */
 section[data-testid="stSidebar"] {
     display: none !important;
+}
+
+/* إخفاء أي نص "Made with Streamlit" أو تذييل */
+div[data-testid="stAppViewContainer"] > div:last-child,
+div[data-testid="stAppViewContainer"] > footer {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+}
+
+/* منع التكبير والتفاعلات غير المرغوب فيها */
+.stApp {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 /* تنسيقات مخصصة للتطبيق */
@@ -98,9 +124,42 @@ div[data-testid="stVerticalBlock"] > div {
 a {
     display: none !important;
 }
+
+/* التأكد من إخفاء كل العناصر في الوضع المضمن */
+.embedded .stApp {
+    margin-top: -50px;
+}
+
+/* منع ظهور أي عناصر floting */
+div[role="tooltip"] {
+    display: none !important;
+}
+
+/* إخفاء أي أزرار تحكم أخرى */
+button[title="View fullscreen"] {
+    display: none !important;
+}
 </style>
 """
+
 st.markdown(hide_all_elements, unsafe_allow_html=True)
+
+# منع right-click لمنع الخيارات السياقية
+st.markdown("""
+<script>
+document.addEventListener('contextmenu', event => event.preventDefault());
+document.addEventListener('keydown', function(event) {
+    // منع F11 للوضع الكامل
+    if (event.key === 'F11') {
+        event.preventDefault();
+    }
+    // منع Ctrl+F / Cmd+F
+    if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+        event.preventDefault();
+    }
+});
+</script>
+""", unsafe_allow_html=True)
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
