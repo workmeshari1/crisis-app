@@ -7,13 +7,77 @@ import torch
 import os
 import json
 
-# --- كود debugging للتحقق من أن التطبيق يعمل ---
+# --- إخفاء كامل لجميع عناصر Streamlit ---
 st.set_page_config(
     page_title="⚡ إدارة الكوارث والأزمات",
     page_icon="⚡",
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    layout="centered", 
+    initial_sidebar_state="collapsed",
+    menu_items=None
 )
+
+# CSS للإخفاء
+hide_style = """
+<style>
+#MainMenu, header, footer {visibility: hidden;}
+.stDeployButton {display: none;}
+[data-testid="stDecoration"] {display: none;}
+[data-testid="baseButton-header"] {display: none;}
+</style>
+"""
+st.markdown(hide_style, unsafe_allow_html=True)
+
+# --- كود التصحيح الإلزامي ---
+st.success("🚀 التطبيق يعمل! جاري التحميل...")
+
+# محاكاة بيانات للاختبار (حل مؤقت)
+def load_test_data():
+    # بيانات اختبارية بدلاً من Google Sheets
+    test_data = [
+        {"وصف الحالة أو الحدث": "حريق في المنشأة", "الإجراء": "إخلاء فوري وتفعيل نظام الإطفاء", "مرادفات للوصف": "حريق,نار,اشتعال"},
+        {"وصف الحالة أو الحدث": "تسرب غاز", "الإجراء": "إغلاق مصدر الغاز وتهوية المنطقة", "مرادفات للوصف": "غاز,تسرب,رائحة"},
+        {"وصف الحالة أو الحدث": "انقطاع التيار الكهربائي", "الإجراء": "تشغيل المولد الاحتياطي", "مرادفات للوصف": "كهرباء,انقطاع,ظلام"}
+    ]
+    df = pd.DataFrame(test_data)
+    return df, "1234"  # كلمة مرور افتراضية
+
+# جرب تحميل البيانات مع استثناء
+try:
+    # جرب التحميل من Google Sheets أولاً
+    # إذا فشل، استخدم البيانات الاختبارية
+    try:
+        # هنا كود التحميل من Google Sheets الأصلي
+        # ... [الكود الأصلي لتحميل البيانات] ...
+        
+        # إذا وصلنا هنا يعني التحميل نجح
+        df, PASSWORD = load_data_and_password()  # الدالة الأصلية
+        st.info("✅ تم التحميل من Google Sheets بنجاح")
+        
+    except Exception as e:
+        st.warning("⚠️ استخدام بيانات اختبارية بسبب مشكلة في الاتصال")
+        df, PASSWORD = load_test_data()
+        
+except Exception as e:
+    st.error(f"❌ خطأ عام: {str(e)}")
+    st.stop()
+
+# --- الآن استمر بالكود الأصلي من هنا ---
+st.title("⚡ دائرة إدارة الكوارث والأزمات الصناعية")
+
+# تسجيل الدخول
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.write("## 🔐 تسجيل الدخول")
+    password = st.text_input("الرقم السري", type="password")
+    if st.button("دخول"):
+        if password == str(PASSWORD):
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("❌ الرقم السري غير صحيح")
+    st.stop()
 
 # رسالة تأكيد أن التطبيق يعمل
 st.success("✅ التطبيق يعمل! جاري التحميل...")
@@ -303,4 +367,5 @@ else:
 if st.button("🔒 تسجيل خروج", use_container_width=True):
     st.session_state.authenticated = False
     st.rerun()
+
 
