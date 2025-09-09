@@ -48,12 +48,12 @@ document.addEventListener('keydown', function(event) {
 </script>
 """, unsafe_allow_html=True)
 
-# ========== تحميل الموديل ========== 
+# ========== تحميل الموديل ==========
 @st.cache_resource
 def load_model():
     return SentenceTransformer("Omartificial-Intelligence-Space/Arabert-all-nli-triplet-Matryoshka")
 
-# ========== تحميل البيانات وكلمة المرور ========== 
+# ========== تحميل البيانات وكلمة المرور ==========
 @st.cache_data(ttl=600)
 def load_data_and_password():
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
@@ -75,7 +75,7 @@ def load_data_and_password():
     password = sheet.cell(1, 5).value
     return df, password
 
-# ========== وظائف البحث ========== 
+# ========== وظائف البحث ==========
 @st.cache_data
 def compute_embeddings(descriptions: list[str]):
     model = load_model()
@@ -101,7 +101,7 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
                 if is_number_in_range(number, syn):
                     st.markdown(f"""
                     <div style='background:#1f1f1f;color:#fff;padding:14px;border-radius:10px;
-                                direction:rtl;text-align:right;font-size:18px;margin-bottom:12px;'>
+                                 direction:rtl;text-align:right;font-size:18px;margin-bottom:12px;'>
                         <div style="font-size:22px;margin-bottom:8px;">🔢 نتيجة رقمية</div>
                         <b>الوصف:</b> {row.get(desc_col,"—")}<br>
                         <b>الإجراء:</b>
@@ -114,12 +114,13 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
     except:
         return False
 
-# ========== عرض النتائج ========== 
-def render_card(r, desc_col, action_col, icon):
+# ========== عرض النتائج ==========
+def render_card(r, desc_col, action_col, icon, score=None):
+    score_display = f" (تشابه: {score:.2f})" if score is not None else ""
     st.markdown(f"""
     <div style='background:#1f1f1f;color:#fff;padding:12px;border-radius:8px;
-                direction:rtl;text-align:right;font-size:18px;margin-bottom:10px;'>
-        <div style="font-size:22px;margin-bottom:6px;">{icon}</div>
+                 direction:rtl;text-align:right;font-size:18px;margin-bottom:10px;'>
+        <div style="font-size:22px;margin-bottom:6px;">{icon} {score_display}</div>
         <b>الوصف:</b> {r[desc_col]}<br>
         <b>الإجراء:</b>
         <span style='background:#ff6600;color:#fff;padding:4px 8px;border-radius:6px;
@@ -202,21 +203,15 @@ else:
         query_emb = load_model().encode(query, convert_to_tensor=True)
         cosine_scores = util.pytorch_cos_sim(query_emb, embeddings)[0]
         top_scores, top_idxs = torch.topk(cosine_scores, k=min(5, len(df)))
-        found = False
-    if float(score) > 0.3:
-        found = True
-        r = df.iloc[int(idx.item())]
-        render_card(r, DESC_COL, ACTION_COL, "🤖")
-    if not found:
+        
+        # === التعديل هنا ===
+        found_smart_results = False
+        st.markdown("<h3 style='text-align:right;'>🤖 نتائج البحث الذكي:</h3>", unsafe_allow_html=True)
+        for score, idx in zip(top_scores, top_idxs):
+            found_smart_results = True
+            r = df.iloc[int(idx.item())]
+            # تم تمرير درجة التشابه للعرض
+            render_card(r, DESC_COL, ACTION_COL, "🤖", score=float(score))
+        
+        if not found_smart_results:
             st.info("لم نتمكن من العثور على نتائج مشابهة كافية.")
-
-
-
-
-
-
-
-
-
-
-
