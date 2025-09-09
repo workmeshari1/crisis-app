@@ -195,7 +195,7 @@ elif synonyms:
     for r in synonyms[:3]:
         render_card(r, DESC_COL, ACTION_COL, "📌")
 else:
-     st.warning("❌ لم يتم العثور على نتائج.. وش رايك تستخدم البحث الذكي 👇")
+    st.warning("❌ لم يتم العثور على نتائج.. وش رايك تستخدم البحث الذكي 👇")
     if st.button("🤖 البحث الذكي"):
         descriptions = df[DESC_COL].fillna("").astype(str).tolist()
         embeddings = compute_embeddings(descriptions)
@@ -210,4 +210,5 @@ else:
                 render_card(r, DESC_COL, ACTION_COL, "🤖")
         if not found:
             st.info("لم نتمكن من العثور على نتائج مشابهة كافية.")
+
 
