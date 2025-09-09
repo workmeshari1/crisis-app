@@ -207,8 +207,9 @@ else:
         found = True
         r = df.iloc[int(idx.item())]
         render_card(r, DESC_COL, ACTION_COL, "🤖")
-        if not found:
+    if not found:
             st.info("لم نتمكن من العثور على نتائج مشابهة كافية.")
+
 
 
 
