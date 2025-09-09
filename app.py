@@ -204,12 +204,13 @@ else:
         top_scores, top_idxs = torch.topk(cosine_scores, k=min(5, len(df)))
         found = False
         for score, idx in zip(top_scores, top_idxs):
-            if float(score) > 0.3
+             if float(score) > 0.3
                 found = True
                 r = df.iloc[int(idx.item())]
                 render_card(r, DESC_COL, ACTION_COL, "🤖")
         if not found:
             st.info("لم نتمكن من العثور على نتائج مشابهة كافية.")
+
 
 
 
