@@ -129,7 +129,7 @@ def render_card(r, desc_col, action_col, icon, score=None):
     """, unsafe_allow_html=True)
 
 # ========== واجهة التطبيق ==========
-st.markdown("<h1>⚡ دائرة إدارة الكوارث والأزمات الصناعية</h1>", unsafe_allow_html=True)
+st.markdown("<h1>⚡دائرة إدارة الكوارث والأزمات الصناعية</h1>", unsafe_allow_html=True)
 
 # تحميل البيانات
 try:
@@ -215,3 +215,4 @@ else:
         
         if not found_smart_results:
             st.info("لم نتمكن من العثور على نتائج مشابهة كافية.")
+
