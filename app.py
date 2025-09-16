@@ -9,7 +9,7 @@ import json
 
 # ========== إعداد الصفحة ==========
 st.set_page_config(
-    page_title="⚡ إدارة الكوارث والأزمات",
+    page_title="إدارة الكوارث والأزمات",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -215,4 +215,5 @@ else:
         
         if not found_smart_results:
             st.info("لم نتمكن من العثور على نتائج مشابهة كافية.")
+
 
