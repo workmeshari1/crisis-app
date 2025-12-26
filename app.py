@@ -31,8 +31,9 @@ page_style = """
 
 @media only screen and (max-width: 768px){
     .stApp{
-        background-size: contain;      /* نفس السلوك للجوال */
+        background-size: contain;
         background-position: center top;
+        background-repeat: repeat-y;   /* ✅ هذا هو الحل */
         padding-top: 60px;
     }
 }
@@ -334,4 +335,5 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
