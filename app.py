@@ -8,7 +8,7 @@ import os
 import json
 
 # ✅ لازم تكون أول شيء بعد imports
-st.set_page_config(page_title="⚡ إدارة الكوارث والأزمات", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="الإجراء الذكي", layout="centered", initial_sidebar_state="collapsed")
 
 # --- ✅ الخلفية: تظهر كاملة على الكمبيوتر + كاملة على الجوال بدون قص أو تشويه ---
 page_style = """
@@ -313,3 +313,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
