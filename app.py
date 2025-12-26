@@ -14,7 +14,7 @@ st.set_page_config(page_title="الإجراء الذكي", layout="centered", in
 page_style = """
 <style>
 .stApp{
-    background-image: url("https://github.com/workmeshari1/disaster-app/blob/6b907779e30e18ec6ebec68b90e2558d91e5339b/assets.png?raw=true");
+    background-image: url("https://github.com/workmeshari1/crisis-app/blob/dd895d2e239a20fcd5bc3eb646c6a3c53f9d2330/assets.png?raw=true");
     background-repeat: no-repeat;
     background-position: center center;
 
@@ -158,7 +158,7 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
         return False
 
 # ============== واجهة ==============
-st.title("⚡دائرة إدارة الكوارث والأزمات الصناعية")
+st.title("الإجراء الذكي")
 
 # تحميل البيانات
 df, PASSWORD = load_data_and_password()
@@ -313,4 +313,5 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
