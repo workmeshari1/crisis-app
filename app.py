@@ -175,7 +175,7 @@ st.markdown(
         direction: rtl;
         text-shadow: 0 2px 6px rgba(0,0,0,0.6);
     ">
-        ⚡ الإجراء الذكي
+         الإجراء الذكي
     </div>
     """,
     unsafe_allow_html=True
@@ -334,3 +334,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
