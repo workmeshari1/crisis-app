@@ -158,7 +158,28 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
         return False
 
 # ============== واجهة ==============
-st.title("الإجراء الذكي")
+
+# ✅✅✅ (بديل st.title) عنوان أكبر + أوضح + بخلفية خلف الكلام
+st.markdown(
+    """
+    <div style="
+        background: rgba(0, 0, 0, 0.55);
+        color: #ffffff;
+        padding: 14px 20px;
+        border-radius: 12px;
+        text-align: center;
+        font-size: 36px;
+        font-weight: 800;
+        margin: -20px auto 18px auto;
+        width: fit-content;
+        direction: rtl;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    ">
+        ⚡ الإجراء الذكي
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # تحميل البيانات
 df, PASSWORD = load_data_and_password()
@@ -308,11 +329,8 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #888; direction: rtl;'>
-    آلية إدارة الكوارث والأزمات الذكية
+    Smart Procedure
     </div>
     """,
     unsafe_allow_html=True
 )
-
-
-
