@@ -6,20 +6,24 @@ from sentence_transformers import SentenceTransformer, util
 import torch
 import os
 import json
-import html  # ✅ مهم: لتعقيم النص القادم من Google Sheet
 
 # ✅ لازم تكون أول شيء بعد imports
 st.set_page_config(page_title="الإجراء الذكي", layout="centered", initial_sidebar_state="collapsed")
 
-# --- ✅ الخلفية: كمبيوتر ممتازة + جوال تتكرر عموديًا عشان تغطي كامل الصفحة ---
+# --- ✅ الخلفية: تظهر كاملة على الكمبيوتر + كاملة على الجوال بدون قص أو تشويه ---
 page_style = """
 <style>
 .stApp{
     background-image: url("https://github.com/workmeshari1/crisis-app/blob/dd895d2e239a20fcd5bc3eb646c6a3c53f9d2330/assets.png?raw=true");
     background-repeat: no-repeat;
     background-position: center center;
+
+    /* ✅ أهم سطر: يظهر الصورة كاملة دائمًا (كمبيوتر + جوال) */
     background-size: contain;
+
+    /* ✅ لون يملأ الفراغات لو نسبة الشاشة تختلف عن الصورة */
     background-color: #0b1220;
+
     min-height: 100vh;
     min-width: 100vw;
     padding-top: 80px;
@@ -29,7 +33,7 @@ page_style = """
     .stApp{
         background-size: contain;
         background-position: center top;
-        background-repeat: repeat-y;   /* ✅ يغطي كامل الصفحة بالجوال */
+        background-repeat: repeat-y;   /* ✅ هذا هو الحل */
         padding-top: 60px;
     }
 }
@@ -58,9 +62,11 @@ def load_model():
 @st.cache_data(ttl=600)
 def load_data_and_password():
     try:
+        # 1) Render env
         creds_json = os.getenv("GOOGLE_CREDENTIALS")
         sheet_id = os.getenv("SHEET_ID")
 
+        # 2) Streamlit secrets
         if not creds_json and hasattr(st, "secrets") and "GOOGLE_CREDENTIALS" in st.secrets:
             creds_json = json.dumps(dict(st.secrets["GOOGLE_CREDENTIALS"]))
             if "SHEET" in st.secrets and "id" in st.secrets["SHEET"]:
@@ -110,48 +116,6 @@ def is_number_in_range(number, synonym):
     except ValueError:
         return False
 
-# --- ✅ كرت موحد: خلفية شفافة + كتابة بيضاء عريضة + إجراء زجاجي وكتابة سوداء عريضة ---
-def render_glass_card(desc_text: str, action_text: str, icon: str = "🔶", extra_html: str = ""):
-    desc = html.escape(str(desc_text))
-    action = html.escape(str(action_text))
-
-    st.markdown(
-        f"""
-        <div style="
-            background: rgba(0,0,0,0.45);
-            color: #ffffff;
-            padding: 16px;
-            border-radius: 14px;
-            direction: rtl;
-            text-align: right;
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 12px;">
-            
-            <div style="font-size:22px;margin-bottom:8px;">{icon}</div>
-
-            <b>الوصف:</b> {desc}<br><br>
-
-            <span style="
-                background: rgba(255,255,255,0.65);
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
-                color: #000000;
-                padding: 8px 14px;
-                border-radius: 10px;
-                display: inline-block;
-                font-weight: 800;
-                border: 1px solid rgba(255,255,255,0.40);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
-                {action}
-            </span>
-
-            {extra_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 def process_number_input(q, df, syn_col, action_col, desc_col):
     try:
         number = int(q)
@@ -173,10 +137,18 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
         if matched_rows:
             st.subheader("🔢 نتائج رقمية مطابقة:")
             for row in matched_rows:
-                render_glass_card(
-                    desc_text=row.get(desc_col, "—"),
-                    action_text=row.get(action_col, "—"),
-                    icon="🔢 نتيجة رقمية"
+                st.markdown(
+                    f"""
+                    <div style='background:#1f1f1f;color:#fff;padding:14px;border-radius:10px;
+                                direction:rtl;text-align:right;font-size:18px;margin-bottom:12px;'>
+                        <div style="font-size:22px;margin-bottom:8px;">🔢 نتيجة رقمية</div>
+                        <b>الوصف:</b> {row.get(desc_col, "—")}<br>
+                        <b>الإجراء:</b>
+                        <span style='background:#ff6600;color:#fff;padding:6px 10px;border-radius:6px;
+                                     display:inline-block;margin-top:6px;'>{row.get(action_col, "—")}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
                 )
             return True
         else:
@@ -188,7 +160,7 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
 
 # ============== واجهة ==============
 
-# ✅✅✅ عنوان أكبر + أوضح + بخلفية خلف الكلام (شفافة)
+# ✅✅✅ (بديل st.title) عنوان أكبر + أوضح + بخلفية خلف الكلام
 st.markdown(
     """
     <div style="
@@ -213,6 +185,7 @@ st.markdown(
 # تحميل البيانات
 df, PASSWORD = load_data_and_password()
 
+# الأعمدة
 DESC_COL = "وصف الحالة أو الحدث"
 ACTION_COL = "الإجراء"
 SYN_COL = "مرادفات للوصف"
@@ -244,9 +217,10 @@ if not st.session_state.authenticated:
             st.error("❌ الرقم السري غير صحيح")
     st.stop()
 
-# عنوان البحث
-st.markdown('<div style="font-size:20px; font-weight:800; line-height:1;color:#fff;">🔍 ابحث هنا</div>', unsafe_allow_html=True)
+# عرض العنوان بخط كبير بدون أي مسافة تحته
+st.markdown('<div style="font-size:20px; font-weight:bold; line-height:1;">🔍 ابحث هنا</div>', unsafe_allow_html=True)
 
+# خانة الإدخال بدون عنوان نهائيًا
 query = st.text_input(
     label="تم إخفاؤه",
     placeholder="اكتب وصف الحالة…",
@@ -267,25 +241,42 @@ words = [w for w in q.split() if w]
 literal_results = []
 synonym_results = []
 
+# 1) الحرفي من الوصف
 for _, row in df.iterrows():
     text = str(row[DESC_COL]).lower()
     if all(w in text for w in words):
         literal_results.append(row)
 
+# 2) الحرفي من المرادفات
 if not literal_results:
     for _, row in df.iterrows():
         syn_text = str(row.get(SYN_COL, "")).lower()
         if any(w in syn_text for w in words):
             synonym_results.append(row)
 
+def render_card(r, icon="🔶"):
+    st.markdown(
+        f"""
+        <div style='background:#1f1f1f;color:#fff;padding:12px;border-radius:8px;direction:rtl;text-align:right;font-size:18px;margin-bottom:10px;'>
+            <div style="font-size:22px;margin-bottom:6px;">{icon} </div>
+            <b>الوصف:</b> {r[DESC_COL]}<br>
+            <b>الإجراء:</b>
+            <span style='background:#ff6600;color:#0a1e3f;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
+                {r[ACTION_COL]}
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 if literal_results:
     st.subheader("🔍 النتائج المطابقة")
     for r in literal_results[:5]:
-        render_glass_card(r.get(DESC_COL, ""), r.get(ACTION_COL, ""), icon="🔍")
+        render_card(r, "🔍")
 elif synonym_results:
-    st.subheader("🔍 نتائج ذات صلة")
+    st.subheader("🔍  نتائج ذات صلة")
     for r in synonym_results[:3]:
-        render_glass_card(r.get(DESC_COL, ""), r.get(ACTION_COL, ""), icon="🔎")
+        render_card(r, "🔍")
 else:
     st.warning(" 👇لم يتم العثور على نتائج❌.. يرجى استخدام البحث الذكي ")
     if st.button("🤖 البحث الذكي"):
@@ -293,10 +284,6 @@ else:
             with st.spinner("جاري البحث الذكي..."):
                 model = load_model()
                 descriptions = df[DESC_COL].fillna("").astype(str).tolist()
-
-                if not descriptions or all(not d.strip() for d in descriptions):
-                    st.error("❌ لا توجد أوصاف صالحة في البيانات.")
-                    st.stop()
 
                 embeddings = compute_embeddings(descriptions)
                 query_embedding = model.encode(query, convert_to_tensor=True).cpu()
@@ -306,27 +293,26 @@ else:
 
                 st.subheader("🤖 نتائج مقترحة")
                 found_results = False
-
                 for score, idx in zip(top_scores, top_indices):
                     if float(score) > 0.3:
                         found_results = True
                         r = df.iloc[int(idx.item())]
-
-                        extra = f"""
-                        <br>
-                        <span style="font-size:14px;color:#ffd18a;">درجة التشابه: {float(score):.2f}</span>
-                        """
-
-                        render_glass_card(
-                            desc_text=r.get(DESC_COL, ""),
-                            action_text=r.get(ACTION_COL, ""),
-                            icon="🤖",
-                            extra_html=extra
+                        st.markdown(
+                            f"""
+                            <div style='background:#444;color:#fff;padding:12px;border-radius:8px;direction:rtl;text-align:right;font-size:18px;margin-bottom:10px;'>
+                                <div style="font-size:22px;margin-bottom:6px;">🤖 </div>
+                                <b>الوصف:</b> {r[DESC_COL]}<br>
+                                <b>الإجراء:</b>
+                                <span style='background:#ff6600;color:#0a1e3f;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
+                                    {r[ACTION_COL]}
+                                </span><br>
+                                <span style='font-size:14px;color:orange;'>درجة التشابه: {float(score):.2f}</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
                         )
-
                 if not found_results:
                     st.info("🤖 لم يتم العثور على نتائج مشابهة كافية. حاول إعادة صياغة سؤالك.")
-
         except Exception as e:
             st.error(f"❌ خطأ في البحث الذكي: {str(e)}")
 
@@ -349,3 +335,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
