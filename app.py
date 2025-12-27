@@ -10,20 +10,15 @@ import json
 # ✅ لازم تكون أول شيء بعد imports
 st.set_page_config(page_title="الإجراء الذكي", layout="centered", initial_sidebar_state="collapsed")
 
-# --- ✅ الخلفية: تظهر كاملة على الكمبيوتر + كاملة على الجوال بدون قص أو تشويه ---
+# --- ✅ الخلفية: كمبيوتر ممتازة + جوال تتكرر عموديًا عشان تغطي كامل الصفحة ---
 page_style = """
 <style>
 .stApp{
     background-image: url("https://github.com/workmeshari1/crisis-app/blob/dd895d2e239a20fcd5bc3eb646c6a3c53f9d2330/assets.png?raw=true");
     background-repeat: no-repeat;
     background-position: center center;
-
-    /* ✅ أهم سطر: يظهر الصورة كاملة دائمًا (كمبيوتر + جوال) */
     background-size: contain;
-
-    /* ✅ لون يملأ الفراغات لو نسبة الشاشة تختلف عن الصورة */
     background-color: #0b1220;
-
     min-height: 100vh;
     min-width: 100vw;
     padding-top: 80px;
@@ -33,7 +28,7 @@ page_style = """
     .stApp{
         background-size: contain;
         background-position: center top;
-        background-repeat: repeat-y;   /* ✅ هذا هو الحل */
+        background-repeat: repeat-y;   /* ✅ يغطي كامل الصفحة بالجوال */
         padding-top: 60px;
     }
 }
@@ -62,11 +57,9 @@ def load_model():
 @st.cache_data(ttl=600)
 def load_data_and_password():
     try:
-        # 1) Render env
         creds_json = os.getenv("GOOGLE_CREDENTIALS")
         sheet_id = os.getenv("SHEET_ID")
 
-        # 2) Streamlit secrets
         if not creds_json and hasattr(st, "secrets") and "GOOGLE_CREDENTIALS" in st.secrets:
             creds_json = json.dumps(dict(st.secrets["GOOGLE_CREDENTIALS"]))
             if "SHEET" in st.secrets and "id" in st.secrets["SHEET"]:
@@ -139,13 +132,31 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
             for row in matched_rows:
                 st.markdown(
                     f"""
-                    <div style='background:#1f1f1f;color:#fff;padding:14px;border-radius:10px;
-                                direction:rtl;text-align:right;font-size:18px;margin-bottom:12px;'>
+                    <div style='
+                        background: rgba(0,0,0,0.45);
+                        color:#fff;
+                        padding:16px;
+                        border-radius:14px;
+                        direction:rtl;
+                        text-align:right;
+                        font-size:18px;
+                        font-weight:700;
+                        margin-bottom:12px;'>
                         <div style="font-size:22px;margin-bottom:8px;">🔢 نتيجة رقمية</div>
-                        <b>الوصف:</b> {row.get(desc_col, "—")}<br>
-                        <b>الإجراء:</b>
-                        <span style='background:#ff6600;color:#fff;padding:6px 10px;border-radius:6px;
-                                     display:inline-block;margin-top:6px;'>{row.get(action_col, "—")}</span>
+                        <b>الوصف:</b> {row.get(desc_col, "—")}<br><br>
+                        <span style='
+                            background: rgba(255,255,255,0.65);
+                            backdrop-filter: blur(8px);
+                            -webkit-backdrop-filter: blur(8px);
+                            color:#000;
+                            padding:8px 14px;
+                            border-radius:10px;
+                            display:inline-block;
+                            font-weight:800;
+                            border:1px solid rgba(255,255,255,0.4);
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.25);'>
+                            {row.get(action_col, "—")}
+                        </span>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -160,7 +171,7 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
 
 # ============== واجهة ==============
 
-# ✅✅✅ (بديل st.title) عنوان أكبر + أوضح + بخلفية خلف الكلام
+# ✅✅✅ عنوان أكبر + أوضح + بخلفية خلف الكلام (شفافة)
 st.markdown(
     """
     <div style="
@@ -185,7 +196,6 @@ st.markdown(
 # تحميل البيانات
 df, PASSWORD = load_data_and_password()
 
-# الأعمدة
 DESC_COL = "وصف الحالة أو الحدث"
 ACTION_COL = "الإجراء"
 SYN_COL = "مرادفات للوصف"
@@ -217,10 +227,9 @@ if not st.session_state.authenticated:
             st.error("❌ الرقم السري غير صحيح")
     st.stop()
 
-# عرض العنوان بخط كبير بدون أي مسافة تحته
-st.markdown('<div style="font-size:20px; font-weight:bold; line-height:1;">🔍 ابحث هنا</div>', unsafe_allow_html=True)
+# عنوان البحث
+st.markdown('<div style="font-size:20px; font-weight:bold; line-height:1;color:#fff;">🔍 ابحث هنا</div>', unsafe_allow_html=True)
 
-# خانة الإدخال بدون عنوان نهائيًا
 query = st.text_input(
     label="تم إخفاؤه",
     placeholder="اكتب وصف الحالة…",
@@ -241,27 +250,46 @@ words = [w for w in q.split() if w]
 literal_results = []
 synonym_results = []
 
-# 1) الحرفي من الوصف
 for _, row in df.iterrows():
     text = str(row[DESC_COL]).lower()
     if all(w in text for w in words):
         literal_results.append(row)
 
-# 2) الحرفي من المرادفات
 if not literal_results:
     for _, row in df.iterrows():
         syn_text = str(row.get(SYN_COL, "")).lower()
         if any(w in syn_text for w in words):
             synonym_results.append(row)
 
+# ✅✅✅ كرت النتائج: خلفية شفافة + كتابة بيضاء عريضة + إجراء زجاجي وكتابة سوداء عريضة
 def render_card(r, icon="🔶"):
     st.markdown(
         f"""
-        <div style='background:#1f1f1f;color:#fff;padding:12px;border-radius:8px;direction:rtl;text-align:right;font-size:18px;margin-bottom:10px;'>
-            <div style="font-size:22px;margin-bottom:6px;">{icon} </div>
-            <b>الوصف:</b> {r[DESC_COL]}<br>
-            <b>الإجراء:</b>
-            <span style='background:#ff6600;color:#0a1e3f;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
+        <div style='
+            background: rgba(0,0,0,0.45);
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 14px;
+            direction: rtl;
+            text-align: right;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;'>
+            <div style="font-size:22px;margin-bottom:8px;">{icon}</div>
+
+            <b>الوصف:</b> {r[DESC_COL]}<br><br>
+
+            <span style='
+                background: rgba(255,255,255,0.65);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                color: #000000;
+                padding: 8px 14px;
+                border-radius: 10px;
+                display: inline-block;
+                font-weight: 800;
+                border: 1px solid rgba(255,255,255,0.40);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.25);'>
                 {r[ACTION_COL]}
             </span>
         </div>
@@ -299,14 +327,33 @@ else:
                         r = df.iloc[int(idx.item())]
                         st.markdown(
                             f"""
-                            <div style='background:#444;color:#fff;padding:12px;border-radius:8px;direction:rtl;text-align:right;font-size:18px;margin-bottom:10px;'>
-                                <div style="font-size:22px;margin-bottom:6px;">🤖 </div>
-                                <b>الوصف:</b> {r[DESC_COL]}<br>
-                                <b>الإجراء:</b>
-                                <span style='background:#ff6600;color:#0a1e3f;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
+                            <div style='
+                                background: rgba(0,0,0,0.45);
+                                color:#fff;
+                                padding:16px;
+                                border-radius:14px;
+                                direction:rtl;
+                                text-align:right;
+                                font-size:18px;
+                                font-weight:700;
+                                margin-bottom:12px;'>
+                                <div style="font-size:22px;margin-bottom:8px;">🤖</div>
+                                <b>الوصف:</b> {r[DESC_COL]}<br><br>
+
+                                <span style='
+                                    background: rgba(255,255,255,0.65);
+                                    backdrop-filter: blur(8px);
+                                    -webkit-backdrop-filter: blur(8px);
+                                    color:#000;
+                                    padding:8px 14px;
+                                    border-radius:10px;
+                                    display:inline-block;
+                                    font-weight:800;
+                                    border:1px solid rgba(255,255,255,0.40);
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.25);'>
                                     {r[ACTION_COL]}
                                 </span><br>
-                                <span style='font-size:14px;color:orange;'>درجة التشابه: {float(score):.2f}</span>
+                                <span style='font-size:14px;color:#ffd18a;'>درجة التشابه: {float(score):.2f}</span>
                             </div>
                             """,
                             unsafe_allow_html=True,
@@ -335,5 +382,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-
