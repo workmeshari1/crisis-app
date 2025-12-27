@@ -6,6 +6,7 @@ from sentence_transformers import SentenceTransformer, util
 import torch
 import os
 import json
+import html  # ✅ مهم: لتعقيم النص القادم من Google Sheet
 
 # ✅ لازم تكون أول شيء بعد imports
 st.set_page_config(page_title="الإجراء الذكي", layout="centered", initial_sidebar_state="collapsed")
@@ -109,6 +110,48 @@ def is_number_in_range(number, synonym):
     except ValueError:
         return False
 
+# --- ✅ كرت موحد: خلفية شفافة + كتابة بيضاء عريضة + إجراء زجاجي وكتابة سوداء عريضة ---
+def render_glass_card(desc_text: str, action_text: str, icon: str = "🔶", extra_html: str = ""):
+    desc = html.escape(str(desc_text))
+    action = html.escape(str(action_text))
+
+    st.markdown(
+        f"""
+        <div style="
+            background: rgba(0,0,0,0.45);
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 14px;
+            direction: rtl;
+            text-align: right;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;">
+            
+            <div style="font-size:22px;margin-bottom:8px;">{icon}</div>
+
+            <b>الوصف:</b> {desc}<br><br>
+
+            <span style="
+                background: rgba(255,255,255,0.65);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                color: #000000;
+                padding: 8px 14px;
+                border-radius: 10px;
+                display: inline-block;
+                font-weight: 800;
+                border: 1px solid rgba(255,255,255,0.40);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+                {action}
+            </span>
+
+            {extra_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 def process_number_input(q, df, syn_col, action_col, desc_col):
     try:
         number = int(q)
@@ -130,36 +173,10 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
         if matched_rows:
             st.subheader("🔢 نتائج رقمية مطابقة:")
             for row in matched_rows:
-                st.markdown(
-                    f"""
-                    <div style='
-                        background: rgba(0,0,0,0.45);
-                        color:#fff;
-                        padding:16px;
-                        border-radius:14px;
-                        direction:rtl;
-                        text-align:right;
-                        font-size:18px;
-                        font-weight:700;
-                        margin-bottom:12px;'>
-                        <div style="font-size:22px;margin-bottom:8px;">🔢 نتيجة رقمية</div>
-                        <b>الوصف:</b> {row.get(desc_col, "—")}<br><br>
-                        <span style='
-                            background: rgba(255,255,255,0.65);
-                            backdrop-filter: blur(8px);
-                            -webkit-backdrop-filter: blur(8px);
-                            color:#000;
-                            padding:8px 14px;
-                            border-radius:10px;
-                            display:inline-block;
-                            font-weight:800;
-                            border:1px solid rgba(255,255,255,0.4);
-                            box-shadow: 0 4px 12px rgba(0,0,0,0.25);'>
-                            {row.get(action_col, "—")}
-                        </span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                render_glass_card(
+                    desc_text=row.get(desc_col, "—"),
+                    action_text=row.get(action_col, "—"),
+                    icon="🔢 نتيجة رقمية"
                 )
             return True
         else:
@@ -228,7 +245,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 # عنوان البحث
-st.markdown('<div style="font-size:20px; font-weight:bold; line-height:1;color:#fff;">🔍 ابحث هنا</div>', unsafe_allow_html=True)
+st.markdown('<div style="font-size:20px; font-weight:800; line-height:1;color:#fff;">🔍 ابحث هنا</div>', unsafe_allow_html=True)
 
 query = st.text_input(
     label="تم إخفاؤه",
@@ -261,50 +278,14 @@ if not literal_results:
         if any(w in syn_text for w in words):
             synonym_results.append(row)
 
-# ✅✅✅ كرت النتائج: خلفية شفافة + كتابة بيضاء عريضة + إجراء زجاجي وكتابة سوداء عريضة
-def render_card(r, icon="🔶"):
-    st.markdown(
-        f"""
-        <div style='
-            background: rgba(0,0,0,0.45);
-            color: #ffffff;
-            padding: 16px;
-            border-radius: 14px;
-            direction: rtl;
-            text-align: right;
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 12px;'>
-            <div style="font-size:22px;margin-bottom:8px;">{icon}</div>
-
-            <b>الوصف:</b> {r[DESC_COL]}<br><br>
-
-            <span style='
-                background: rgba(255,255,255,0.65);
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
-                color: #000000;
-                padding: 8px 14px;
-                border-radius: 10px;
-                display: inline-block;
-                font-weight: 800;
-                border: 1px solid rgba(255,255,255,0.40);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.25);'>
-                {r[ACTION_COL]}
-            </span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 if literal_results:
     st.subheader("🔍 النتائج المطابقة")
     for r in literal_results[:5]:
-        render_card(r, "🔍")
+        render_glass_card(r.get(DESC_COL, ""), r.get(ACTION_COL, ""), icon="🔍")
 elif synonym_results:
-    st.subheader("🔍  نتائج ذات صلة")
+    st.subheader("🔍 نتائج ذات صلة")
     for r in synonym_results[:3]:
-        render_card(r, "🔍")
+        render_glass_card(r.get(DESC_COL, ""), r.get(ACTION_COL, ""), icon="🔎")
 else:
     st.warning(" 👇لم يتم العثور على نتائج❌.. يرجى استخدام البحث الذكي ")
     if st.button("🤖 البحث الذكي"):
@@ -312,6 +293,10 @@ else:
             with st.spinner("جاري البحث الذكي..."):
                 model = load_model()
                 descriptions = df[DESC_COL].fillna("").astype(str).tolist()
+
+                if not descriptions or all(not d.strip() for d in descriptions):
+                    st.error("❌ لا توجد أوصاف صالحة في البيانات.")
+                    st.stop()
 
                 embeddings = compute_embeddings(descriptions)
                 query_embedding = model.encode(query, convert_to_tensor=True).cpu()
@@ -321,45 +306,27 @@ else:
 
                 st.subheader("🤖 نتائج مقترحة")
                 found_results = False
+
                 for score, idx in zip(top_scores, top_indices):
                     if float(score) > 0.3:
                         found_results = True
                         r = df.iloc[int(idx.item())]
-                        st.markdown(
-                            f"""
-                            <div style='
-                                background: rgba(0,0,0,0.45);
-                                color:#fff;
-                                padding:16px;
-                                border-radius:14px;
-                                direction:rtl;
-                                text-align:right;
-                                font-size:18px;
-                                font-weight:700;
-                                margin-bottom:12px;'>
-                                <div style="font-size:22px;margin-bottom:8px;">🤖</div>
-                                <b>الوصف:</b> {r[DESC_COL]}<br><br>
 
-                                <span style='
-                                    background: rgba(255,255,255,0.65);
-                                    backdrop-filter: blur(8px);
-                                    -webkit-backdrop-filter: blur(8px);
-                                    color:#000;
-                                    padding:8px 14px;
-                                    border-radius:10px;
-                                    display:inline-block;
-                                    font-weight:800;
-                                    border:1px solid rgba(255,255,255,0.40);
-                                    box-shadow: 0 4px 12px rgba(0,0,0,0.25);'>
-                                    {r[ACTION_COL]}
-                                </span><br>
-                                <span style='font-size:14px;color:#ffd18a;'>درجة التشابه: {float(score):.2f}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
+                        extra = f"""
+                        <br>
+                        <span style="font-size:14px;color:#ffd18a;">درجة التشابه: {float(score):.2f}</span>
+                        """
+
+                        render_glass_card(
+                            desc_text=r.get(DESC_COL, ""),
+                            action_text=r.get(ACTION_COL, ""),
+                            icon="🤖",
+                            extra_html=extra
                         )
+
                 if not found_results:
                     st.info("🤖 لم يتم العثور على نتائج مشابهة كافية. حاول إعادة صياغة سؤالك.")
+
         except Exception as e:
             st.error(f"❌ خطأ في البحث الذكي: {str(e)}")
 
