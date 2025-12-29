@@ -6,51 +6,57 @@ from sentence_transformers import SentenceTransformer, util
 import torch
 import os
 import json
-import html  # ✅ مهم: لتعقيم النص القادم من Google Sheet ومنع ظهور HTML كنص
 
-# ✅ لازم تكون أول شيء بعد imports
-st.set_page_config(page_title="الإجراء الذكي", layout="centered", initial_sidebar_state="collapsed")
-
-# --- ✅ الخلفية: تظهر كاملة على الكمبيوتر + بالجوال تتكرر عموديًا لتغطي كامل الصفحة ---
-page_style = """
+# --- الخلفية مع إزاحة للأسفل + إخفاء الشعار والأيقونات + تصغير العناوين ---
+page_style = f"""
 <style>
-.stApp{
-    background-image: url("https://github.com/workmeshari1/crisis-app/blob/dd895d2e239a20fcd5bc3eb646c6a3c53f9d2330/assets.png?raw=true");
+.stApp {{
+    background-image: url("https://github.com/workmeshari1/disaster-app/blob/6b907779e30e18ec6ebec68b90e2558d91e5339b/assets.png?raw=true");
+    background-size: cover;
+    background-position: center top;
     background-repeat: no-repeat;
-    background-position: center center;
-
-    /* ✅ يظهر الصورة كاملة دائمًا */
-    background-size: contain;
-
-    /* ✅ لون يملأ الفراغات */
-    background-color: #0b1220;
-
+    background-attachment: fixed;
     min-height: 100vh;
-    min-width: 100vw;
     padding-top: 80px;
-}
+}}
 
-@media only screen and (max-width: 768px){
-    .stApp{
-        background-size: contain;
+@media only screen and (max-width: 768px) {{
+    .stApp {{
+        background-size: cover;
         background-position: center top;
-        background-repeat: repeat-y;   /* ✅ يغطي كامل الصفحة بالجوال */
         padding-top: 60px;
-    }
-}
+    }}
+}}
 
-#MainMenu, header, footer{ visibility: hidden; }
+#MainMenu, header, footer {{
+    visibility: hidden;
+}}
 
 .st-emotion-cache-12fmjuu,
 [data-testid="stDecoration"],
-.stDeployButton{ display:none !important; }
+.stDeployButton {{
+    display: none !important;
+}}
 
-h1{ font-size: 26px !important; color:#ffffff; text-align:center; margin-top:-60px; }
-h2{ font-size: 20px !important; color:#ffffff; }
-h3{ font-size: 18px !important; color:#ffffff; }
+h1 {{
+    font-size: 26px !important;
+    color: #ffffff;
+    text-align: center;
+    margin-top: -60px;
+}}
+h2 {{
+    font-size: 20px !important;
+    color: #ffffff;
+}}
+h3 {{
+    font-size: 18px !important;
+    color: #ffffff;
+}}
 </style>
 """
 st.markdown(page_style, unsafe_allow_html=True)
+
+st.set_page_config(page_title="⚡ إدارة الكوارث والأزمات", layout="centered", initial_sidebar_state="collapsed")
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -63,44 +69,45 @@ def load_model():
 @st.cache_data(ttl=600)
 def load_data_and_password():
     try:
-        # 1) Render env
+        # 1. أولاً، حاول تحميل الأسرار من متغيرات البيئة (لـ Render)
         creds_json = os.getenv("GOOGLE_CREDENTIALS")
         sheet_id = os.getenv("SHEET_ID")
-
-        # 2) Streamlit secrets
-        if not creds_json and hasattr(st, "secrets") and "GOOGLE_CREDENTIALS" in st.secrets:
+        
+        # 2. إذا لم يتم العثور عليها، حاول التحميل من أسرار Streamlit (لـ Streamlit Cloud)
+        if not creds_json and hasattr(st, 'secrets') and "GOOGLE_CREDENTIALS" in st.secrets:
             creds_json = json.dumps(dict(st.secrets["GOOGLE_CREDENTIALS"]))
-            if "SHEET" in st.secrets and "id" in st.secrets["SHEET"]:
-                sheet_id = st.secrets["SHEET"]["id"]
+            if "id" in st.secrets["SHEET"]:
+                sheet_id = st.secrets.SHEET["id"]
             else:
                 raise ValueError("❌ 'id' is missing in the secrets.toml SHEET section.")
 
+        # 3. التحقق مما إذا تم العثور على الأسرار في أي من الموقعين
         if not creds_json or not sheet_id:
-            raise ValueError("❌ لم يتم العثور على المتغيرات السرية. تأكد من إعدادها في المنصة.")
-
+            raise ValueError("❌ لم يتم العثور على المتغيرات السرية. تأكد من إعدادها في إعدادات المنصة.")
+        
         creds_info = json.loads(creds_json)
+        
+        # الآن، اتصل بـ Google Sheets باستخدام بيانات الاعتماد التي تم تحميلها
         creds = Credentials.from_service_account_info(creds_info, scopes=SCOPES)
         client = gspread.authorize(creds)
-
         sheet = client.open_by_key(sheet_id)
         ws = sheet.sheet1
 
         data = ws.get_all_records()
         df = pd.DataFrame(data)
-
-        password_value = ws.cell(1, 5).value  # E1
+        password_value = ws.cell(1, 5).value
         return df, password_value
-
     except Exception as e:
         st.error(f"❌ فشل الاتصال بقاعدة البيانات: {str(e)}")
-        st.info("تأكد من إعداد GOOGLE_CREDENTIALS و SHEET_ID في Streamlit secrets أو Render env.")
+        st.info("تأكد من إعداد متغيرات البيئة GOOGLE_CREDENTIALS و SHEET_ID بشكل صحيح في إعدادات Render، أو في ملف secrets.toml لـ Streamlit.")
         st.stop()
+
 
 # --- حساب إمبادنج للوصف ---
 @st.cache_data
 def compute_embeddings(descriptions: list[str]):
     model = load_model()
-    return model.encode(descriptions, convert_to_tensor=True).cpu()
+    return model.encode(descriptions, convert_to_tensor=True)
 
 # --- دالة للتحقق من الأرقام ضمن نطاق أو قيمة مفردة ---
 def is_number_in_range(number, synonym):
@@ -110,14 +117,15 @@ def is_number_in_range(number, synonym):
             if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
                 return False
             min_val = int(parts[0])
-            max_val = float("inf") if parts[1].strip().lower() in ["∞", "inf"] else int(parts[1])
+            max_val = float('inf') if parts[1] in ["∞", "inf"] else int(parts[1])
             return min_val <= number <= max_val
         else:
             return number == int(synonym)
-    except ValueError:
+    except ValueError as e:
+        print(f"خطأ في معالجة القيمة أو النطاق '{synonym}': {e}")
         return False
 
-def process_number_input(q, df, syn_col, action_col, desc_col):
+def process_number_input(q, df, syn_col, action_col):
     try:
         number = int(q)
         matched_rows = []
@@ -133,23 +141,20 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
                     continue
                 if is_number_in_range(number, syn):
                     matched_rows.append(row)
-                    break
+                    break  # ← ننتقل للسطر التالي إذا وجدنا تطابقًا في هذا السطر
 
         if matched_rows:
             st.subheader("🔢 نتائج رقمية مطابقة:")
             for row in matched_rows:
-                desc = html.escape(str(row.get(desc_col, "—")))
-                action = html.escape(str(row.get(action_col, "—")))
-
                 st.markdown(
                     f"""
                     <div style='background:#1f1f1f;color:#fff;padding:14px;border-radius:10px;
                                 direction:rtl;text-align:right;font-size:18px;margin-bottom:12px;'>
                         <div style="font-size:22px;margin-bottom:8px;">🔢 نتيجة رقمية</div>
-                        <b>الوصف:</b> {desc}<br>
+                        <b>الوصف:</b> {row.get("وصف الحالة أو الحدث", "—")}<br>
                         <b>الإجراء:</b>
                         <span style='background:#ff6600;color:#fff;padding:6px 10px;border-radius:6px;
-                                     display:inline-block;margin-top:6px;'>{action}</span>
+                                     display:inline-block;margin-top:6px;'>{row[action_col]}</span>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -157,38 +162,22 @@ def process_number_input(q, df, syn_col, action_col, desc_col):
             return True
         else:
             st.warning("❌ لم يتم العثور على تطابق للرقم المدخل.")
-            return True
+            return False
 
     except ValueError:
         return False
-
 # ============== واجهة ==============
+st.title("⚡دائرة إدارة الكوارث والأزمات الصناعية")
 
-# ✅✅✅ (بديل st.title) عنوان أكبر + أوضح + بخلفية خلف الكلام
-st.markdown(
-    """
-    <div style="
-        background: rgba(0, 0, 0, 0.55);
-        color: #ffffff;
-        padding: 14px 20px;
-        border-radius: 12px;
-        text-align: center;
-        font-size: 36px;
-        font-weight: 800;
-        margin: -20px auto 18px auto;
-        width: fit-content;
-        direction: rtl;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.6);
-    ">
-         الإجراء الذكي
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# جرب تحميل البيانات
+try:
+    df, PASSWORD = load_data_and_password()
+except Exception as e:
+    st.error(f"❌ فشل الاتصال بقاعدة البيانات: {str(e)}")
+    st.info("تأكد من إعداد متغيرات البيئة GOOGLE_CREDENTIALS و SHEET_ID بشكل صحيح في إعدادات Render، أو في ملف secrets.toml لـ Streamlit.")
+    st.stop()
 
-# تحميل البيانات
-df, PASSWORD = load_data_and_password()
-
+# التحقق من الأعمدة المطلوبة
 DESC_COL = "وصف الحالة أو الحدث"
 ACTION_COL = "الإجراء"
 SYN_COL = "مرادفات للوصف"
@@ -220,23 +209,26 @@ if not st.session_state.authenticated:
             st.error("❌ الرقم السري غير صحيح")
     st.stop()
 
-# عرض عنوان البحث
-st.markdown('<div style="font-size:20px; font-weight:bold; line-height:1;color:#fff;">🔍 ابحث هنا</div>', unsafe_allow_html=True)
+import streamlit as st
 
-# خانة الإدخال
+# عرض العنوان بخط كبير بدون أي مسافة تحته
+st.markdown('<div style="font-size:20px; font-weight:bold; line-height:1;">🔍 ابحث هنا</div>', unsafe_allow_html=True)
+
+# خانة الإدخال بدون عنوان نهائيًا
 query = st.text_input(
     label="تم إخفاؤه",
     placeholder="اكتب وصف الحالة…",
     label_visibility="collapsed"
 )
 
+# التحقق من الإدخال
 if not query:
     st.stop()
 
+# معالجة الإدخال
 q = query.strip().lower()
-
-# --------- 🔢 معالجة الأرقام ---------
-if process_number_input(q, df, SYN_COL, ACTION_COL, DESC_COL):
+# --------- 🔢 معالجة الأرقام مع دعم النطاقات والقيم المتعددة ---------
+if process_number_input(q, df, SYN_COL, ACTION_COL):
     st.stop()
 
 # --------- 📝 البحث النصي ---------
@@ -244,29 +236,29 @@ words = [w for w in q.split() if w]
 literal_results = []
 synonym_results = []
 
+# 1) الحرفي من الوصف
 for _, row in df.iterrows():
     text = str(row[DESC_COL]).lower()
     if all(w in text for w in words):
         literal_results.append(row)
 
+# 2) الحرفي من المرادفات
 if not literal_results:
     for _, row in df.iterrows():
         syn_text = str(row.get(SYN_COL, "")).lower()
         if any(w in syn_text for w in words):
             synonym_results.append(row)
 
+# عرض النتائج
 def render_card(r, icon="🔶"):
-    desc = html.escape(str(r.get(DESC_COL, "")))
-    action = html.escape(str(r.get(ACTION_COL, "")))
-
     st.markdown(
         f"""
         <div style='background:#1f1f1f;color:#fff;padding:12px;border-radius:8px;direction:rtl;text-align:right;font-size:18px;margin-bottom:10px;'>
             <div style="font-size:22px;margin-bottom:6px;">{icon} </div>
-            <b>الوصف:</b> {desc}<br>
+            <b>الوصف:</b> {r[DESC_COL]}<br>
             <b>الإجراء:</b>
             <span style='background:#ff6600;color:#0a1e3f;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
-                {action}
+                {r[ACTION_COL]}
             </span>
         </div>
         """,
@@ -288,27 +280,33 @@ else:
             with st.spinner("جاري البحث الذكي..."):
                 model = load_model()
                 descriptions = df[DESC_COL].fillna("").astype(str).tolist()
-
+                if not descriptions or all(not desc.strip() for desc in descriptions):
+                    st.error("❌ لا توجد أوصاف صالحة في البيانات.")
+                    st.stop()
                 embeddings = compute_embeddings(descriptions)
-                query_embedding = model.encode(query, convert_to_tensor=True).cpu()
-
+                query_embedding = model.encode(query, convert_to_tensor=True)
                 cosine_scores = util.pytorch_cos_sim(query_embedding, embeddings)[0]
                 top_scores, top_indices = torch.topk(cosine_scores, k=min(5, len(df)))
-
                 st.subheader("🤖 نتائج مقترحة")
                 found_results = False
-
                 for score, idx in zip(top_scores, top_indices):
                     if float(score) > 0.3:
                         found_results = True
                         r = df.iloc[int(idx.item())]
-
-                        # ✅ عرض النتيجة بنفس كرت النتائج
-                        render_card(r, "🤖")
-
-                        # ✅ عرض التشابه خارج HTML (آمن ولن يظهر كود كنص)
-                        st.caption(f"درجة التشابه: {float(score):.2f}")
-
+                        st.markdown(
+                            f"""
+                            <div style='background:#444;color:#fff;padding:12px;border-radius:8px;direction:rtl;text-align:right;font-size:18px;margin-bottom:10px;'>
+                                <div style="font-size:22px;margin-bottom:6px;">🤖 </div>
+                                <b>الوصف:</b> {r[DESC_COL]}<br>
+                                <b>الإجراء:</b>
+                                <span style='background:#ff6600;color:#0a1e3f;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;'>
+                                    {r[ACTION_COL]}
+                                </span><br>
+                                <span style='font-size:14px;color:orange;'>درجة التشابه: {float(score):.2f}</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
                 if not found_results:
                     st.info("🤖 لم يتم العثور على نتائج مشابهة كافية. حاول إعادة صياغة سؤالك.")
         except Exception as e:
@@ -328,8 +326,20 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #888; direction: rtl;'>
-    Smart Procedure
+    آلية إدارة الكوارث والأزمات الذكية
     </div>
     """,
     unsafe_allow_html=True
 )
+
+
+
+
+
+
+
+
+
+
+
+
